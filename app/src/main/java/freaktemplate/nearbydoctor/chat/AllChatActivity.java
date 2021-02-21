@@ -158,7 +158,7 @@ public class AllChatActivity extends AppCompatActivity {
     private void filter() {
         Log.e(TAG, "filter: " );
         for (int i=0;i<messageList.size();i++) {
-            if (!hasModel(messageList.get(i))){
+            if (!hasModel(messageList.get(i))&&!userId.contentEquals(messageList.get(i).getSender())){
                 messageList2.add(messageList.get(i));
             }
         }
