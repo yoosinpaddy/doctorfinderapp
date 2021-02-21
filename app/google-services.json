@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "638136650226",
+    "firebase_url": "https://doctorfinder-a8f7e-default-rtdb.firebaseio.com",
+    "project_id": "doctorfinder-a8f7e",
+    "storage_bucket": "doctorfinder-a8f7e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:638136650226:android:d14d342003f6742e9ec36b",
+        "android_client_info": {
+          "package_name": "freaktemplate.nearbydoctor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "638136650226-oj03ris49gpbmomuac9rl3vu9ap9s6rt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXxWEE-ekcAiqsQgg_wfkfGZqZPibFzMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "638136650226-oj03ris49gpbmomuac9rl3vu9ap9s6rt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,498 @@
+package freaktemplate.nearbydoctor.doctorfinder;
+
+import android.app.Activity;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.facebook.AccessToken;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.login.LoginManager;
+import com.facebook.login.LoginResult;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import freaktemplate.nearbydoctor.R;
+import freaktemplate.nearbydoctor.chat.AllChatActivity;
+import freaktemplate.nearbydoctor.utils.CommonUtilities;
+import freaktemplate.nearbydoctor.utils.LanguageSelectore;
+import freaktemplate.nearbydoctor.utils.WakeLocker;
+import freaktemplate.nearbydoctor.utils.logingetset;
+
+import static freaktemplate.nearbydoctor.doctorfinder.Home.TF_opensansRegular;
+import static freaktemplate.nearbydoctor.doctorfinder.Home.TF_ralewayRegular;
+
+
+public class LoginPhar extends Activity {
+    private static final String MyPREFERENCES = "DoctorPrefrance";
+    private final BroadcastReceiver mHandleMessageReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String newMessage = intent.getExtras().getString( CommonUtilities.EXTRA_MESSAGE);
+
+            // Waking up mobile if it is sleeping
+            WakeLocker.acquire(getApplicationContext());
+
+            // Releasing wake lock
+            WakeLocker.release();
+        }
+    };
+
+    private EditText mail;
+    private EditText password;
+    private String email;
+    private String pwd;
+    private ArrayList<logingetset> login;
+    private String status;
+    private String regId;
+    private String name;
+    private String Android;
+    private String imagefb;
+    private String ppic;
+    private String click;
+    private boolean isSuccess = false;
+    private CallbackManager callbackManager;
+    private String personname;
+    private String personemail;
+    private String personPhotoUrl;
+
+    public static void logout() {
+        LoginManager.getInstance().logOut();
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView( R.layout.activity_login_p);
+        LanguageSelectore.setLanguageIfAR( LoginPhar.this );
+        TextView header = findViewById(R.id.header);
+        header.setTypeface(TF_ralewayRegular);
+        Button btn_facebook = findViewById(R.id.facebook);
+
+        registerReceiver(mHandleMessageReceiver, new IntentFilter(CommonUtilities.DISPLAY_MESSAGE_ACTION));
+
+        // Get GCM registration id
+//        regId = GCMRegistrar.getRegistrationId(Login.this);
+//        GCMRegistrar.register(Login.this, CommonUtilities.SENDER_ID);
+        TextView create = findViewById(R.id.create);
+        TextView pharmacist = findViewById(R.id.pharmacist);
+        create.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent iv = new Intent(LoginPhar.this, Registernew.class);
+                startActivity(iv);
+            }
+        });
+        pharmacist.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent iv = new Intent(LoginPhar.this, Registernew.class);
+                startActivity(iv);
+            }
+        });
+        login = new ArrayList<>();
+        mail = findViewById(R.id.mail);
+        password = findViewById(R.id.password);
+
+        Button signin = findViewById(R.id.signin);
+        signin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                click = "signin";
+                email = mail.getText().toString();
+                pwd = password.getText().toString();
+
+
+                if (!email.isEmpty()) {
+                    if (!pwd.isEmpty()) {
+                        new getlogin().execute();
+                    } else {
+                        password.setError(getString(R.string.pass_enter_text));
+                    }
+                } else {
+                    mail.setError(getString(R.string.username_enter));
+                }
+            }
+        });
+
+//        FacebookSdk.sdkInitialize(this);
+        callbackManager = CallbackManager.Factory.create();
+        final List<String> permissionNeeds = Arrays.asList("email");
+        final boolean loggedIn = AccessToken.getCurrentAccessToken() == null;
+        LoginManager.getInstance().registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                getUserDetail(loginResult);
+            }
+
+            @Override
+            public void onCancel() {
+
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+                Log.e("check1", error.getMessage());
+
+            }
+        });
+        btn_facebook.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                click = "fb";
+                LoginManager.getInstance().logInWithReadPermissions(LoginPhar.this, permissionNeeds);
+            }
+
+
+//                loginToFacebook();
+
+            // postToWall();
+            // logoutFromFacebook();
+
+//                getProfileInformation();
+
+
+        });
+
+    }
+
+    @Override
+    protected void onStop() {
+
+
+//       unregisterReceiver(mHandleMessageReceiver);
+        super.onStop();
+    }
+
+    private void getdetailforNearMe() {
+        // TODO Auto-generated method stub
+
+        URL hp = null;
+        String error;
+        try {
+            login.clear();
+            switch (click) {
+                case "signin":
+                    hp = new URL(getString(R.string.link) + "userlogin.php?username=" + email + "&password=" + pwd);
+                    break;
+                case "gplus":
+                    hp = new URL(getString(R.string.link) + "userlogin.php?logintype=Google&email=" + personemail + "&name=" + personname + "&image=" + personPhotoUrl + "&platform=Android&reg_id=" + regId);
+
+                    break;
+            }
+            Log.d("login", "" + hp);
+            URLConnection hpCon = hp.openConnection();
+            hpCon.connect();
+            InputStream input = hpCon.getInputStream();
+            BufferedReader r = new BufferedReader(new InputStreamReader(input));
+
+            String x;
+            x = r.readLine();
+            StringBuilder total = new StringBuilder();
+
+            while (x != null) {
+                total.append(x);
+                x = r.readLine();
+            }
+            JSONArray jarr = new JSONArray(total.toString());
+            JSONObject jObject = jarr.getJSONObject(0);
+            String currentKey;
+            Iterator<String> iterator = jObject.keys();
+            while (iterator.hasNext()) {
+                currentKey = iterator.next();
+                Log.d("currentkey", "" + currentKey);
+            }
+
+            status = jObject.getString("status");
+            if (status.equals("Failed")) {
+
+            } else if (status.equals("Success")) {
+                JSONObject j = jObject.getJSONObject("User_info");
+                for (int i = 0; i < j.length(); i++) {
+
+                    logingetset temp = new logingetset();
+                    temp.setId(j.getString("id"));
+                    temp.setUsername(j.getString("username"));
+                    temp.setEmail(j.getString("email"));
+                    temp.setImage(j.getString("image"));
+                    login.add(temp);
+                }
+            }
+
+        } catch (MalformedURLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            error = e.getMessage();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            error = e.getMessage();
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            error = e.getMessage();
+        } catch (NullPointerException e) {
+            // TODO: handle exception
+            error = e.getMessage();
+        }
+    }
+
+    private void facebookLogin() {
+        click = "fb";
+        RequestQueue queue = Volley.newRequestQueue(LoginPhar.this);
+        String hp = getString(R.string.link) + "userlogin.php?logintype=Facebook&name=" + name + "&email=" + email  + "&referral_code=" + 1234 + "&image=" + imagefb+"&platform=Android"+"&reg_id="+123;
+        Log.e( "Login", "facebookLogin: "+hp  );
+        StringRequest request = new StringRequest(Request.Method.POST, hp, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.e("Login", "onResponse: " + response);
+
+                try {
+                    JSONArray jar = new JSONArray(response);
+                    final JSONObject job = jar.getJSONObject(0);
+                    Log.e("LOGIN", "onResponse: " + job.getString("status"));
+                    String status = job.getString("status");
+                    if (status.equals("Success")) {
+
+                        JSONObject j = job.getJSONObject("User_info");
+                        for (int i = 0; i < j.length(); i++) {
+                            logingetset temp = new logingetset();
+                            temp.setId(j.getString("id"));
+                            temp.setUsername(j.getString("username"));
+                            temp.setEmail(j.getString("email"));
+                            temp.setImage(j.getString("image"));
+                            login.add(temp);
+                        }
+                        SharedPreferences.Editor editor = getSharedPreferences(MyPREFERENCES, MODE_PRIVATE).edit();
+                        editor.putString("userid", "" + login.get(0).getId());
+                        editor.putString("username", "" + login.get(0).getUsername());
+                        editor.putString("email", "" + login.get(0).getEmail());
+                        editor.putString("picture", "" + login.get(0).getImage());
+                        editor.putString("type", click);
+                        editor.apply();
+                        errorDialog(LoginPhar.this);
+
+                    } else if (job.getString("status").equals("Failed")) {
+                        runOnUiThread( new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    Toast.makeText( LoginPhar.this, job.getString( "Error" ), Toast.LENGTH_SHORT ).show();
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        } );
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("Login", "onErrorResponse: " + error.getMessage());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("platform", "Android");
+                params.put("logintype", "Facebook");
+                params.put("email", email);
+                params.put("username", name);
+                String str = imagefb.substring(8);
+                Log.e("TAG", "getParams: "+str );
+                params.put("image", str);
+                params.put("reg_id", String.valueOf(regId));
+                return params;
+            }
+        };
+        queue.add(request);
+    }
+
+    private void getUserDetail(LoginResult loginResult) {
+        GraphRequest data_request = GraphRequest.newMeRequest(
+                loginResult.getAccessToken(),
+                new GraphRequest.GraphJSONObjectCallback() {
+                    @Override
+                    public void onCompleted(
+                            JSONObject json_object,
+                            GraphResponse response) {
+                        Log.e("User Data", json_object.toString());
+                        String json = json_object.toString();
+                        try {
+                            JSONObject profile = new JSONObject(json);
+
+                            // getting name of the user
+                            name = profile.getString("name");
+                            name = name.replace(" ", "%20");
+                            // getting email of the user
+                            regId = profile.getString("id");
+                            email = profile.getString("email");
+                            JSONObject picture = profile.getJSONObject("picture");
+                            JSONObject data = picture.getJSONObject("data");
+                            Log.e( "adsff", "onCompleted: "+ data );
+                            ppic = data.getString("url");
+                            if (name != null) {
+                                if (ppic != null) {
+                                    imagefb ="graph.facebook.com/" + regId + "/picture?type=large";
+                                    Log.d("fbimage", "" + imagefb);
+                                    email = email.replace(" ", "%20");
+
+                                    facebookLogin();
+                                }
+                            }
+                        } catch (JSONException e) {
+                            Log.e("Error", e.getMessage());
+                        }
+
+                    }
+
+                });
+        Bundle permission_param = new Bundle();
+        permission_param.putString("fields", "id,name,email,picture");
+        data_request.setParameters(permission_param);
+        data_request.executeAsync();
+    }
+
+    @Override
+    protected void onDestroy() {
+//
+//        try {
+//            unregisterReceiver(mHandleMessageReceiver);
+////            GCMRegistrar.onDestroy(this);
+//        } catch (Exception e) {
+//            Log.e("UnRegister", "> " + e.getMessage());
+//        }
+        super.onDestroy();
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int responseCode, Intent intent) {
+        callbackManager.onActivityResult(requestCode, responseCode, intent);
+    }
+
+    public class getlogin extends AsyncTask<Void, Void, Void> {
+        ProgressDialog progressDialog;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressDialog = new ProgressDialog(LoginPhar.this);
+            progressDialog.setMessage("Loading");
+            progressDialog.setCancelable(true);
+            progressDialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            getdetailforNearMe();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            if (progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+
+            try {
+                if (status.equals("Success")) {
+                    SharedPreferences.Editor editor = getSharedPreferences(MyPREFERENCES, MODE_PRIVATE).edit();
+                    editor.putString("userid", "" + login.get(0).getId());
+                    editor.putString("username", "" + login.get(0).getUsername());
+                    editor.putString("type", click);
+                    editor.putString("email", "" + login.get(0).getEmail());
+                    editor.putString("picture", "" + login.get(0).getImage());
+                    editor.putBoolean("isPham", true);
+                    editor.apply();
+                    errorDialog(LoginPhar.this);
+
+                } else if (status.equals("Failed")) {
+                    Toast.makeText(LoginPhar.this, R.string.toast_warn, Toast.LENGTH_LONG).show();
+                }
+            } catch (NullPointerException e) {
+                Toast.makeText(LoginPhar.this, R.string.toast_warn, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void errorDialog(Activity activity) {
+
+        final Dialog dialog = new Dialog(activity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(false);
+        dialog.setContentView(R.layout.error_dialog);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        ImageView img = dialog.findViewById(R.id.img_cancel);
+        img.setImageResource(R.drawable.dialogsucess);
+
+        TextView txt_dialog_title = dialog.findViewById(R.id.txt_dialog_title);
+        TextView txt_error_description = dialog.findViewById(R.id.txt_error_description);
+        txt_dialog_title.setTypeface(TF_opensansRegular);
+        txt_error_description.setTypeface(TF_ralewayRegular);
+
+        txt_dialog_title.setText(getString(R.string.success_title));
+        txt_error_description.setText(getString(R.string.login_message));
+
+        Button btn_ok = dialog.findViewById(R.id.btn_ok);
+        btn_ok.setTypeface(TF_ralewayRegular);
+        btn_ok.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+                Intent iv = new Intent(LoginPhar.this, AllChatActivity.class);
+                startActivity(iv);
+            }
+        });
+        dialog.show();
+    }
+}
